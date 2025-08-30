@@ -2,7 +2,7 @@
 //!
 //! This module provides the in-memory lock manager used by the server.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 /// Errors returned by the lock manager.

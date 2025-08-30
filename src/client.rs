@@ -11,7 +11,6 @@
 //! });
 //! ```
 
-use std::sync::Arc;
 use std::time::Duration;
 use std::io::{self, Write, BufRead, BufReader};
 use std::net::TcpStream;
@@ -84,25 +83,22 @@ impl LockserverClient {
 
 /// Macro to acquire a distributed lock for a code block.
 /// Usage:
-/// ```
-/// lock_scope!(client, "resource", {
-///     // critical section
-/// });
-/// ```
+///
+/// See `tests/lock_scope_macro.rs` for a working example as a regular test.
 /// Macro to acquire a distributed lock for a code block.
 ///
 /// # Examples
 ///
 /// Blocking (default):
-/// ```
-/// lock_scope!(client, "resource", {
-///     // critical section
-/// });
-/// ```
+///
+/// See `tests/lock_scope_macro.rs` for a working example as a regular test.
 ///
 /// Non-blocking:
 /// ```
-/// lock_scope!(client, "resource", non_blocking, {
+/// use lockserver::{lock_scope, LockserverClient};
+/// use lockserver::client::LockMode;
+/// let client = LockserverClient::new("127.0.0.1:4000", "worker1");
+/// lock_scope!(&client, "resource", non_blocking, {
 ///     // critical section
 /// });
 /// ```
@@ -117,7 +113,7 @@ macro_rules! lock_scope {
     }};
     // Non-blocking mode
     ($client:expr, $resource:expr, non_blocking, $block:block) => {{
-        $client.acquire_with_mode($resource, $crate::LockMode::NonBlocking).expect("Failed to acquire lock (non-blocking)");
+        $client.acquire_with_mode($resource, lockserver::client::LockMode::NonBlocking).expect("Failed to acquire lock (non-blocking)");
         let _guard = $crate::LockGuard::new($client, $resource);
         let result = (|| $block)();
         result
