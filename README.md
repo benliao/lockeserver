@@ -1,12 +1,14 @@
 
+
 # Lockserver
 
-A distributed lock server for coordinating access to shared resources.
+Lockserver is a distributed lock server for coordinating access to shared resources across multiple workers or processes. It provides both TCP and HTTP APIs, as well as a Rust client library with ergonomic macros for easy distributed locking.
 
 ## Features
 - Simple API for acquiring and releasing locks
 - TCP and HTTP API
-- Client library with ergonomic macros
+- Client library with ergonomic macros (`lock_scope!`)
+- Blocking and non-blocking lock acquisition
 - Ready for publishing to crates.io
 
 ## Usage
@@ -45,7 +47,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"resource":"myres","owner"
 curl -X POST -H "Content-Type: application/json" -d '{"resource":"myres","owner":"worker1"}' http://localhost:8080/release
 ```
 
-### Client Library & Macro
+### Rust Client Library & Macro
 
 Add to your `Cargo.toml`:
 
@@ -71,5 +73,8 @@ if let Ok(()) = client.acquire_with_mode("resource", lockserver::LockMode::NonBl
 }
 ```
 
+For more advanced usage, see the integration tests in `tests/lock_scope_macro.rs`.
+
 ## License
+
 MIT OR Apache-2.0

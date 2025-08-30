@@ -1,3 +1,5 @@
+//! # lock_manager
+//!
 //! Lock management for the distributed lock server.
 //!
 //! This module provides the in-memory lock manager used by the server.

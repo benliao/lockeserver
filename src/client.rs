@@ -1,8 +1,10 @@
-//! lockserver_client: A client library for interacting with a lockserver instance.
+//! # lockserver_client
 //!
-//! Provides macros for easy lock usage, similar to a local mutex guard.
+//! A Rust client library for interacting with a lockserver instance.
 //!
-//! # Example
+//! Provides macros for easy distributed lock usage, similar to a local mutex guard.
+//!
+//! ## Example
 //! ```rust
 //! use lockserver::{LockserverClient, lock_scope};
 //! let client = LockserverClient::new("127.0.0.1:4000", "worker1");
