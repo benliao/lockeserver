@@ -1,43 +1,14 @@
+use dotenvy::dotenv;
 
-use lockserver::{LockManager, LockError};
-use std::net::{TcpListener, TcpStream};
-use std::io::{BufRead, BufReader, Write};
-use std::sync::Arc;
-use std::thread;
-use actix_web::{web, App, HttpServer, Responder, HttpResponse};
+use actix_web::{App, HttpResponse, HttpServer, Responder, web};
+use lockserver::LockManager;
 use serde::Deserialize;
+use std::env;
+use std::sync::Arc;
 use std::sync::Mutex as StdMutex;
+//
+use clap::{Arg, Command};
 
-fn handle_client(stream: TcpStream, manager: Arc<LockManager>) {
-    let mut reader = BufReader::new(stream.try_clone().unwrap());
-    let mut writer = stream;
-    let mut line = String::new();
-    loop {
-        line.clear();
-        let bytes = reader.read_line(&mut line).unwrap();
-        if bytes == 0 { break; }
-        let parts: Vec<_> = line.trim().split_whitespace().collect();
-        if parts.len() < 3 {
-            writeln!(writer, "ERR Invalid command").unwrap();
-            continue;
-        }
-        let cmd = parts[0].to_uppercase();
-        let resource = parts[1];
-        let owner = parts[2];
-        let result = match cmd.as_str() {
-            "ACQUIRE" => manager.acquire(resource, owner),
-            "RELEASE" => manager.release(resource, owner),
-            _ => {
-                writeln!(writer, "ERR Unknown command").unwrap();
-                continue;
-            }
-        };
-        match result {
-            Ok(()) => writeln!(writer, "OK").unwrap(),
-            Err(e) => writeln!(writer, "ERR {}", e).unwrap(),
-        }
-    }
-}
 
 #[derive(Deserialize)]
 struct LockRequest {
@@ -69,34 +40,53 @@ async fn release_lock(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let manager = Arc::new(LockManager::new());
+    // Load .env file if present
+    let _ = dotenv();
+    // Use clap for --argument style parsing
+    let matches = Command::new("lockserver")
+        .about("Distributed lock server for coordinating access to shared resources.")
+        .arg(
+            Arg::new("bind")
+                .long("bind")
+                .short('b')
+                .value_name("BIND_IP")
+                .help("Bind IP address (default: 0.0.0.0)"),
+        )
+        .arg(
+            Arg::new("port")
+                .long("port")
+                .short('p')
+                .value_name("PORT")
+                .help("HTTP API port (default: 8080)"),
+        )
+        .get_matches();
+
+    // Load from env first, then override with CLI args if present
+    let mut bind_ip = env::var("LOCKSERVER_BIND_IP").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let mut http_port = env::var("LOCKSERVER_PORT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(8080);
+
+    if let Some(cli_bind) = matches.get_one::<String>("bind") {
+        bind_ip = cli_bind.clone();
+    }
+    if let Some(cli_port) = matches.get_one::<String>("port")
+        && let Ok(port) = cli_port.parse()
+    {
+        http_port = port;
+    }
+
     let http_manager = Arc::new(StdMutex::new(LockManager::new()));
-
-    // Start TCP server in a thread
-    let tcp_manager = manager.clone();
-    thread::spawn(move || {
-        let listener = TcpListener::bind("0.0.0.0:4000").expect("Failed to bind port 4000");
-        println!("Lockserver TCP listening on 0.0.0.0:4000");
-        for stream in listener.incoming() {
-            match stream {
-                Ok(stream) => {
-                    let manager = tcp_manager.clone();
-                    thread::spawn(move || handle_client(stream, manager));
-                }
-                Err(e) => eprintln!("Connection failed: {}", e),
-            }
-        }
-    });
-
-    // Start HTTP server
-    println!("Lockserver HTTP listening on 0.0.0.0:8080");
+    let http_addr = (bind_ip.as_str(), http_port);
+    println!("Lockserver HTTP listening on {}:{}", bind_ip, http_port);
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(http_manager.clone()))
             .route("/acquire", web::post().to(acquire_lock))
             .route("/release", web::post().to(release_lock))
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(http_addr)?
     .run()
     .await
 }

@@ -10,9 +10,9 @@ use std::sync::{Arc, Mutex};
 /// Errors returned by the lock manager.
 #[derive(Debug, thiserror::Error)]
 pub enum LockError {
-    #[error("Resource is already locked")] 
+    #[error("Resource is already locked")]
     AlreadyLocked,
-    #[error("Resource not found")] 
+    #[error("Resource not found")]
     NotFound,
     #[error("Internal error: {0}")]
     Internal(String),
@@ -27,12 +27,17 @@ pub struct LockManager {
 impl LockManager {
     /// Create a new lock manager.
     pub fn new() -> Self {
-        Self { locks: Arc::new(Mutex::new(HashMap::new())) }
+        Self {
+            locks: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 
     /// Try to acquire a lock for a resource and owner.
     pub fn acquire(&self, resource: &str, owner: &str) -> Result<(), LockError> {
-        let mut locks = self.locks.lock().map_err(|e| LockError::Internal(e.to_string()))?;
+        let mut locks = self
+            .locks
+            .lock()
+            .map_err(|e| LockError::Internal(e.to_string()))?;
         if locks.contains_key(resource) {
             Err(LockError::AlreadyLocked)
         } else {
@@ -43,7 +48,10 @@ impl LockManager {
 
     /// Release a lock for a resource and owner.
     pub fn release(&self, resource: &str, owner: &str) -> Result<(), LockError> {
-        let mut locks = self.locks.lock().map_err(|e| LockError::Internal(e.to_string()))?;
+        let mut locks = self
+            .locks
+            .lock()
+            .map_err(|e| LockError::Internal(e.to_string()))?;
         match locks.get(resource) {
             Some(current_owner) if current_owner == owner => {
                 locks.remove(resource);
