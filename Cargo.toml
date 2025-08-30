@@ -1,0 +1,21 @@
+[package]
+name = "lockserver"
+version = "0.1.0"
+edition = "2024"
+description = "A distributed lock server for coordinating access to shared resources."
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/lockserver"
+documentation = "https://docs.rs/lockserver"
+homepage = "https://github.com/yourusername/lockserver"
+keywords = ["distributed", "lock", "server", "synchronization", "concurrency"]
+categories = ["concurrency", "network-programming", "database"]
+readme = "README.md"
+
+
+[dependencies]
+thiserror = "1.0"
+actix-web = "4"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
