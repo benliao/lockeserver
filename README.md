@@ -1,9 +1,10 @@
 # Badges
 
-![Crates.io](https://img.shields.io/crates/v/lockserver)
-![Docs.rs](https://img.shields.io/docsrs/lockserver)
-![CI](https://github.com/benliao/lockserver/actions/workflows/ci.yml/badge.svg)
-![License](https://img.shields.io/crates/l/lockserver)
+[![CI](https://github.com/benliao/lockserver/workflows/CI/badge.svg)](https://github.com/benliao/lockserver/actions)
+[![Security](https://github.com/benliao/lockserver/workflows/Security/badge.svg)](https://github.com/benliao/lockserver/actions)
+[![Crates.io](https://img.shields.io/crates/v/lockserver.svg)](https://crates.io/crates/lockserver)
+[![Downloads](https://img.shields.io/crates/d/lockserver.svg)](https://crates.io/crates/lockserver)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 
 # Lockserver
