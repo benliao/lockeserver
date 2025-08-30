@@ -11,7 +11,7 @@ documentation = "https://docs.rs/lockserver"
 homepage = "https://github.com/benliao/lockserver"
 readme = "README.md"
 keywords = ["distributed", "lock", "server", "synchronization", "concurrency"]
-categories = ["concurrency", "network-programming", "distributed"]
+categories = ["concurrency", "network-programming"]
 exclude = [".github/*", "target/*", ".env.example"]
 rust-version = "1.85"
 
