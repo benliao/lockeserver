@@ -137,4 +137,4 @@ For more advanced usage, see the integration tests in `tests/lock_scope_macro.rs
 
 ## License
 
-MIT OR Apache-2.0
+Licensed under the [MIT License](LICENSE).
