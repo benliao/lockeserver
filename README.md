@@ -1,13 +1,10 @@
-# Badges
+# Lockserver
 
 [![CI](https://github.com/benliao/lockserver/workflows/CI/badge.svg)](https://github.com/benliao/lockserver/actions)
 [![Security](https://github.com/benliao/lockserver/workflows/Security/badge.svg)](https://github.com/benliao/lockserver/actions)
 [![Crates.io](https://img.shields.io/crates/v/lockserver.svg)](https://crates.io/crates/lockserver)
 [![Downloads](https://img.shields.io/crates/d/lockserver.svg)](https://crates.io/crates/lockserver)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-
-# Lockserver
 
 Lockserver is a distributed lock server for coordinating access to shared resources across multiple workers or processes. It provides an HTTP API and a Rust client library with ergonomic macros for easy distributed locking.
 
