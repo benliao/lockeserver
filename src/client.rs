@@ -1,27 +1,9 @@
 use dotenvy::dotenv;
-use std::env;
-impl LockserverClient {
-    /// Create a new client, loading address and owner from environment variables or .env if not provided.
-    ///
-    /// - `LOCKSERVER_ADDR` (default: "127.0.0.1:8080")
-    /// - `LOCKSERVER_OWNER` (default: "default_owner")
-    pub fn new_with_env(addr: Option<impl Into<String>>, owner: Option<impl Into<String>>) -> Self {
-        let _ = dotenv();
-        let addr = addr
-            .map(|a| a.into())
-            .or_else(|| env::var("LOCKSERVER_ADDR").ok())
-            .unwrap_or_else(|| "127.0.0.1:8080".to_string());
-        let owner = owner
-            .map(|o| o.into())
-            .or_else(|| env::var("LOCKSERVER_OWNER").ok())
-            .unwrap_or_else(|| "default_owner".to_string());
-        Self { addr, owner }
-    }
-}
-use std::io;
-use reqwest::blocking::Client as HttpClient;
 use reqwest::StatusCode;
+use reqwest::blocking::Client as HttpClient;
 use serde::Serialize;
+use std::env;
+use std::io;
 /// # lockserver_client
 ///
 /// A Rust client library for interacting with a lockserver HTTP instance.
@@ -30,27 +12,28 @@ use serde::Serialize;
 ///
 /// ## Configuration
 ///
-/// The client can load the server address and owner from environment variables or a `.env` file:
+/// The client can load the server address, owner, and secret from environment variables or a `.env` file:
 ///
 /// - `LOCKSERVER_ADDR` (default: `127.0.0.1:8080`)
 /// - `LOCKSERVER_OWNER` (default: `default_owner`)
+/// - `LOCKSERVER_SECRET` (default: `changeme`)
 ///
 /// ## Example
 /// ```rust
 /// use lockserver::{LockserverClient, lock_scope};
-/// // Loads from env/.env if None
-/// let client = LockserverClient::new_with_env(None::<String>, None::<String>);
+/// // Loads from env/.env if None (including secret)
+/// let client = LockserverClient::new_with_env(None::<String>, None::<String>, None::<String>);
 /// lock_scope!(&client, "resource", {
 ///     // critical section
 /// });
 /// ```
-
 /// A client for connecting to a lockserver instance.
 ///
 /// Use this to acquire and release distributed locks.
 pub struct LockserverClient {
     addr: String,
     owner: String,
+    secret: String,
 }
 
 /// Lock acquisition mode: blocking or non-blocking.
@@ -63,11 +46,54 @@ pub enum LockMode {
 }
 
 impl LockserverClient {
-    /// Create a new client for the given server address and owner ID.
-    pub fn new(addr: impl Into<String>, owner: impl Into<String>) -> Self {
+    /// Create a new client, loading address, owner, and secret from environment variables or .env if not provided.
+    ///
+    /// - `LOCKSERVER_ADDR` (default: "127.0.0.1:8080")
+    /// - `LOCKSERVER_OWNER` (default: "default_owner")
+    /// - `LOCKSERVER_SECRET` (default: "changeme")
+    ///
+    /// # Security
+    ///
+    /// All requests require a shared secret for authorization. The client sends this in the `X-LOCKSERVER-SECRET` header.
+    pub fn new_with_env(
+        addr: Option<impl Into<String>>,
+        owner: Option<impl Into<String>>,
+        secret: Option<impl Into<String>>,
+    ) -> Self {
+        let _ = dotenv();
+        let addr = addr
+            .map(|a| a.into())
+            .or_else(|| env::var("LOCKSERVER_ADDR").ok())
+            .unwrap_or_else(|| "127.0.0.1:8080".to_string());
+        let owner = owner
+            .map(|o| o.into())
+            .or_else(|| env::var("LOCKSERVER_OWNER").ok())
+            .unwrap_or_else(|| "default_owner".to_string());
+        let secret = secret
+            .map(|s| s.into())
+            .or_else(|| env::var("LOCKSERVER_SECRET").ok())
+            .unwrap_or_else(|| "changeme".to_string());
+        Self {
+            addr,
+            owner,
+            secret,
+        }
+    }
+
+    /// Create a new client for the given server address, owner ID, and secret.
+    ///
+    /// # Security
+    ///
+    /// All requests require a shared secret for authorization. The client sends this in the `X-LOCKSERVER-SECRET` header.
+    pub fn new(
+        addr: impl Into<String>,
+        owner: impl Into<String>,
+        secret: impl Into<String>,
+    ) -> Self {
         Self {
             addr: addr.into(),
             owner: owner.into(),
+            secret: secret.into(),
         }
     }
 
@@ -88,14 +114,24 @@ impl LockserverClient {
         }
         let client = HttpClient::new();
         let url = format!("http://{}/acquire", self.addr);
-        let req = LockRequest { resource, owner: &self.owner };
+        let req = LockRequest {
+            resource,
+            owner: &self.owner,
+        };
         loop {
-            let resp = client.post(&url).json(&req).send();
+            let resp = client
+                .post(&url)
+                .header("X-LOCKSERVER-SECRET", &self.secret)
+                .json(&req)
+                .send();
             match resp {
                 Ok(r) if r.status() == StatusCode::OK => return Ok(()),
                 Ok(r) if r.status() == StatusCode::CONFLICT => {
                     if mode == LockMode::NonBlocking {
-                        return Err(io::Error::new(io::ErrorKind::WouldBlock, "Resource is locked"));
+                        return Err(io::Error::new(
+                            io::ErrorKind::WouldBlock,
+                            "Resource is locked",
+                        ));
                     } else {
                         std::thread::sleep(std::time::Duration::from_millis(200));
                     }
@@ -119,8 +155,15 @@ impl LockserverClient {
         }
         let client = HttpClient::new();
         let url = format!("http://{}/release", self.addr);
-        let req = LockRequest { resource, owner: &self.owner };
-        let resp = client.post(&url).json(&req).send();
+        let req = LockRequest {
+            resource,
+            owner: &self.owner,
+        };
+        let resp = client
+            .post(&url)
+            .header("X-LOCKSERVER-SECRET", &self.secret)
+            .json(&req)
+            .send();
         match resp {
             Ok(r) if r.status() == StatusCode::OK => Ok(()),
             Ok(r) => Err(io::Error::other(format!("HTTP error: {}", r.status()))),
@@ -145,7 +188,7 @@ impl LockserverClient {
 /// ```
 /// use lockserver::{lock_scope, LockserverClient};
 /// use lockserver::client::LockMode;
-/// let client = LockserverClient::new("127.0.0.1:8080", "worker1");
+/// let client = LockserverClient::new("127.0.0.1:8080", "worker1", "changeme");
 /// lock_scope!(&client, "resource_non_blocking", non_blocking, {
 ///     // critical section
 /// });

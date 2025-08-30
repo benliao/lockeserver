@@ -1,6 +1,6 @@
 use dotenvy::dotenv;
 
-use actix_web::{App, HttpResponse, HttpServer, Responder, web};
+use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use lockserver::LockManager;
 use serde::Deserialize;
 use std::env;
@@ -9,17 +9,28 @@ use std::sync::Mutex as StdMutex;
 //
 use clap::{Arg, Command};
 
-
 #[derive(Deserialize)]
 struct LockRequest {
     resource: String,
     owner: String,
 }
 
+fn check_secret(req: &HttpRequest, expected: &str) -> bool {
+    req.headers()
+        .get("X-LOCKSERVER-SECRET")
+        .map(|v| v == expected)
+        .unwrap_or(false)
+}
+
 async fn acquire_lock(
     data: web::Data<Arc<StdMutex<LockManager>>>,
     req: web::Json<LockRequest>,
+    http_req: HttpRequest,
+    secret: web::Data<String>,
 ) -> impl Responder {
+    if !check_secret(&http_req, &secret) {
+        return HttpResponse::Unauthorized().body("Missing or invalid secret");
+    }
     let manager = data.lock().unwrap();
     match manager.acquire(&req.resource, &req.owner) {
         Ok(()) => HttpResponse::Ok().body("OK"),
@@ -30,7 +41,12 @@ async fn acquire_lock(
 async fn release_lock(
     data: web::Data<Arc<StdMutex<LockManager>>>,
     req: web::Json<LockRequest>,
+    http_req: HttpRequest,
+    secret: web::Data<String>,
 ) -> impl Responder {
+    if !check_secret(&http_req, &secret) {
+        return HttpResponse::Unauthorized().body("Missing or invalid secret");
+    }
     let manager = data.lock().unwrap();
     match manager.release(&req.resource, &req.owner) {
         Ok(()) => HttpResponse::Ok().body("OK"),
@@ -67,6 +83,7 @@ async fn main() -> std::io::Result<()> {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(8080);
+    let secret = env::var("LOCKSERVER_SECRET").unwrap_or_else(|_| "changeme".to_string());
 
     if let Some(cli_bind) = matches.get_one::<String>("bind") {
         bind_ip = cli_bind.clone();
@@ -76,13 +93,18 @@ async fn main() -> std::io::Result<()> {
     {
         http_port = port;
     }
+    // Optionally allow CLI arg for secret in future
 
     let http_manager = Arc::new(StdMutex::new(LockManager::new()));
     let http_addr = (bind_ip.as_str(), http_port);
-    println!("Lockserver HTTP listening on {}:{}", bind_ip, http_port);
+    println!(
+        "Lockserver HTTP listening on {}:{} (secret required)",
+        bind_ip, http_port
+    );
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(http_manager.clone()))
+            .app_data(web::Data::new(secret.clone()))
             .route("/acquire", web::post().to(acquire_lock))
             .route("/release", web::post().to(release_lock))
     })

@@ -12,7 +12,7 @@
 //! ```rust
 //! use lockserver::{LockManager, LockserverClient, lock_scope};
 //! let manager = LockManager::new();
-//! let client = LockserverClient::new_with_env(None::<String>, None::<String>);
+//! let client = LockserverClient::new_with_env(None::<String>, None::<String>, None::<String>);
 //! lock_scope!(&client, "resource", {
 //!     // critical section
 //! });

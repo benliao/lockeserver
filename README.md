@@ -17,6 +17,29 @@ Lockserver is a distributed lock server for coordinating access to shared resour
 ### Start the server
 
 
+
+## Security: Shared Secret Authorization
+
+All client requests must include a shared secret for authorization. The server and client must agree on the same secret, set via the `LOCKSERVER_SECRET` environment variable or `.env` file. The client sends this secret in the `X-LOCKSERVER-SECRET` HTTP header.
+
+**Example .env:**
+```
+LOCKSERVER_SECRET=your-strong-secret
+```
+
+**Server:**
+```
+LOCKSERVER_SECRET=your-strong-secret
+cargo run --release
+```
+
+**Client:**
+```
+LOCKSERVER_SECRET=your-strong-secret
+```
+
+Or pass the secret directly to the client constructor.
+
 You can configure the bind IP and HTTP port using CLI arguments, environment variables, or a `.env` file (using dotenvy):
 
 **CLI arguments (override env/.env):**
@@ -49,11 +72,13 @@ cargo run --release
 - Release a lock:
   `POST /release` with JSON `{ "resource": "myres", "owner": "worker1" }`
 
-Example using `curl`:
+Example using `curl` (with secret):
 
 ```sh
-curl -X POST -H "Content-Type: application/json" -d '{"resource":"myres","owner":"worker1"}' http://localhost:8080/acquire
-curl -X POST -H "Content-Type: application/json" -d '{"resource":"myres","owner":"worker1"}' http://localhost:8080/release
+curl -X POST -H "Content-Type: application/json" -H "X-LOCKSERVER-SECRET: your-strong-secret" \
+  -d '{"resource":"myres","owner":"worker1"}' http://localhost:8080/acquire
+curl -X POST -H "Content-Type: application/json" -H "X-LOCKSERVER-SECRET: your-strong-secret" \
+  -d '{"resource":"myres","owner":"worker1"}' http://localhost:8080/release
 ```
 
 
@@ -81,14 +106,19 @@ Or pass them directly:
 ```rust
 use lockserver::{LockserverClient, lock_scope};
 
-// Loads from env/.env if None
-let client = LockserverClient::new_with_env(None::<String>, None::<String>);
+
+// Loads from env/.env if None (including secret)
+let client = LockserverClient::new_with_env(None::<String>, None::<String>, None::<String>);
 lock_scope!(&client, "resource", {
   // critical section
 });
 
-// Override address or owner:
-let client = LockserverClient::new_with_env(Some("192.168.1.10:9000"), Some("myworker"));
+// Override address, owner, or secret:
+let client = LockserverClient::new_with_env(
+    Some("192.168.1.10:9000"),
+    Some("myworker"),
+    Some("your-strong-secret")
+);
 
 // Non-blocking mode:
 if let Ok(()) = client.acquire_with_mode("resource", lockserver::LockMode::NonBlocking) {
