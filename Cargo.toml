@@ -1,6 +1,6 @@
 [package]
 name = "lockserver"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "A distributed lock server for coordinating access to shared resources."
 
@@ -12,7 +12,7 @@ homepage = "https://github.com/benliao/lockserver"
 readme = "README.md"
 keywords = ["distributed", "lock", "server", "synchronization", "concurrency"]
 categories = ["concurrency", "network-programming", "distributed"]
-exclude = [".github/*", "tests/*", "examples/*", "target/*", ".env", ".env.example"]
+exclude = [".github/*", "target/*", ".env.example"]
 rust-version = "1.85"
 
 [badges]
