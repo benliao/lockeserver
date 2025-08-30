@@ -1,3 +1,9 @@
+# Badges
+
+![Crates.io](https://img.shields.io/crates/v/lockserver)
+![Docs.rs](https://img.shields.io/docsrs/lockserver)
+![CI](https://github.com/benliao/lockserver/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/crates/l/lockserver)
 
 
 # Lockserver
