@@ -7,7 +7,7 @@ def readme():
 
 setup(
     name='lockserver-client',
-    version='0.1.1',
+    version='0.1.3',
     description='Python client SDK for lockserver (distributed lock server)',
     long_description=readme(),
     long_description_content_type='text/markdown',
