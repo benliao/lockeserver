@@ -1,2 +1,9 @@
 /target
 .env
+python-client/dist
+js-client/node_modules/
+js-client/package-lock.json
+python-client/__pycache__/
+python-client/lockserver_client.egg-info/
+*.egg-info/
+*.pyc

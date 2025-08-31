@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: lockserver-client
-Version: 0.1.1
+Version: 0.1.3
 Summary: Python client SDK for lockserver (distributed lock server)
 Home-page: https://github.com/benliao/lockserver
 Author: Ben Liao
@@ -23,6 +23,27 @@ Dynamic: license
 Dynamic: requires-dist
 Dynamic: summary
 
+## Publishing to PyPI
+
+This package is ready for PyPI. The `setup.py` uses your `README.md` as the long description, so your PyPI page will show this documentation.
+
+To publish:
+
+1. Make sure you have `build` and `twine` installed:
+    ```sh
+    pip install --upgrade build twine
+    ```
+2. Build the package:
+    ```sh
+    python3 -m build
+    ```
+3. Upload to PyPI:
+    ```sh
+    python3 -m twine upload dist/*
+    ```
+4. Check your package at https://pypi.org/project/lockserver-client/
+
+If you update the README, rebuild and re-upload to update the PyPI description.
 # lockserver-client (Python)
 
 A Python client SDK for [lockserver](https://github.com/benliao/lockserver), a distributed lock server for coordinating access to shared resources.
@@ -79,8 +100,9 @@ if client.acquire('s3-upload-lock'):
 - `owner`: unique owner id (default: `default_owner`)
 - `secret`: shared secret (default: `changeme`)
 
-### `acquire(resource, blocking=True)`
+### `acquire(resource, blocking=True, expire=None)`
 - Acquires a lock on `resource`. If `blocking` is False, returns immediately if lock is held.
+- `expire` (optional): lock expiration in seconds. After this time, the lock is auto-released by the server.
 - Returns `True` (lock acquired) or `False` (non-blocking, lock not acquired).
 
 ### `release(resource)`
