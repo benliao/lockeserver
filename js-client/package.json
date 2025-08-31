@@ -1,0 +1,17 @@
+{
+  "name": "lockserver-client",
+  "version": "0.1.0",
+  "description": "Node.js client SDK for lockserver (distributed lock server)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "author": "Ben Liao <abenliao@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benliao/lockserver"
+  },
+  "keywords": ["distributed", "lock", "server", "client", "sdk", "nodejs"],
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}

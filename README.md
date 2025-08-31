@@ -1,17 +1,21 @@
 # Lockserver
 
-[![CI](https://github.com/benliao/lockserver/workflows/CI/badge.svg)](https://github.com/benliao/lockserver/actions)
-[![Crates.io](https://img.shields.io/crates/v/lockserver.svg)](https://crates.io/crates/lockserver)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Crates.io](https://img.shields.io/crates/v/lockserver)
+![Docs.rs](https://img.shields.io/docsrs/lockserver)
+![npm](https://img.shields.io/npm/v/lockserver-client)
+![PyPI](https://img.shields.io/pypi/v/lockserver-client)
+![CI](https://github.com/benliao/lockserver/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/crates/l/lockserver)
 
-Lockserver is a distributed lock server for coordinating access to shared resources across multiple workers or processes. It provides an HTTP API and a Rust client library with ergonomic macros for easy distributed locking.
+Lockserver is a distributed lock server for coordinating access to shared resources across multiple workers or processes. It provides an HTTP API and official client libraries for Rust (with ergonomic macros), Node.js, and Python for easy distributed locking in any environment.
 
 ## Features
 - Simple API for acquiring and releasing locks
 - HTTP API only (no TCP service)
-- Client library with ergonomic macros (`lock_scope!`)
+- Official client libraries for Rust, Node.js, and Python
+- Ergonomic Rust macros (`lock_scope!`)
 - Blocking and non-blocking lock acquisition
-- Ready for publishing to crates.io
+- Ready for publishing to crates.io, npm, and PyPI
 
 ## Usage
 
@@ -84,7 +88,14 @@ curl -X POST -H "Content-Type: application/json" -H "X-LOCKSERVER-SECRET: your-s
 ```
 
 
-### Rust Client Library & Macro
+
+## Client SDKs
+
+- **Rust**: See below and the integration tests in `tests/lock_scope_macro.rs`.
+- **Node.js**: [js-client/](js-client/) ([npm](https://www.npmjs.com/package/lockserver-client))
+- **Python**: [python-client/](python-client/) ([PyPI](https://pypi.org/project/lockserver-client/))
+
+### Rust Example
 
 Add to your `Cargo.toml`:
 
@@ -93,21 +104,8 @@ Add to your `Cargo.toml`:
 lockserver = "0.1"
 ```
 
-
-#### Client configuration
-
-The client can load the server address and owner from environment variables or a `.env` file:
-
-```
-LOCKSERVER_ADDR=127.0.0.1:8080
-LOCKSERVER_OWNER=worker1
-```
-
-Or pass them directly:
-
 ```rust
 use lockserver::{LockserverClient, lock_scope};
-
 
 // Loads from env/.env if None (including secret)
 let client = LockserverClient::new_with_env(None::<String>, None::<String>, None::<String>);
@@ -129,7 +127,7 @@ if let Ok(()) = client.acquire_with_mode("resource", lockserver::LockMode::NonBl
 }
 ```
 
-For more advanced usage, see the integration tests in `tests/lock_scope_macro.rs`.
+See the respective `README.md` in each client directory for Node.js and Python usage and installation instructions.
 
 ## License
 
