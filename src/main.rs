@@ -13,6 +13,7 @@ use clap::{Arg, Command};
 struct LockRequest {
     resource: String,
     owner: String,
+    expire: Option<u64>, // seconds
 }
 
 fn check_secret(req: &HttpRequest, expected: &str) -> bool {
@@ -32,7 +33,7 @@ async fn acquire_lock(
         return HttpResponse::Unauthorized().body("Missing or invalid secret");
     }
     let manager = data.lock().unwrap();
-    match manager.acquire(&req.resource, &req.owner) {
+    match manager.acquire(&req.resource, &req.owner, req.expire) {
         Ok(()) => HttpResponse::Ok().body("OK"),
         Err(e) => HttpResponse::Conflict().body(format!("ERR {}", e)),
     }

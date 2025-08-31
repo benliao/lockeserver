@@ -99,24 +99,33 @@ impl LockserverClient {
 
     /// Try to acquire a lock. If mode is Blocking, will retry every 200ms until success.
     /// Acquire a lock on a resource. Blocks until the lock is acquired.
+
     pub fn acquire(&self, resource: &str) -> io::Result<()> {
-        self.acquire_with_mode(resource, LockMode::Blocking)
+        self.acquire_with_mode_and_expire(resource, LockMode::Blocking, None)
     }
 
     /// Acquire a lock on a resource, with blocking or non-blocking mode.
     ///
     /// Returns an error if the lock cannot be acquired in non-blocking mode.
+
     pub fn acquire_with_mode(&self, resource: &str, mode: LockMode) -> io::Result<()> {
+        self.acquire_with_mode_and_expire(resource, mode, None)
+    }
+
+    /// Acquire a lock with mode and optional expiration (in seconds)
+    pub fn acquire_with_mode_and_expire(&self, resource: &str, mode: LockMode, expire: Option<u64>) -> io::Result<()> {
         #[derive(Serialize)]
         struct LockRequest<'a> {
             resource: &'a str,
             owner: &'a str,
+            expire: Option<u64>,
         }
         let client = HttpClient::new();
         let url = format!("http://{}/acquire", self.addr);
         let req = LockRequest {
             resource,
             owner: &self.owner,
+            expire,
         };
         loop {
             let resp = client

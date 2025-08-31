@@ -9,9 +9,11 @@ class LockserverClient:
         self.secret = secret or os.getenv('LOCKSERVER_SECRET', 'changeme')
         self.base_url = f'http://{self.addr}'
 
-    def acquire(self, resource, blocking=True):
+    def acquire(self, resource, blocking=True, expire=None):
         url = f'{self.base_url}/acquire'
         payload = {'resource': resource, 'owner': self.owner}
+        if expire is not None:
+            payload['expire'] = expire
         headers = {'X-LOCKSERVER-SECRET': self.secret}
         while True:
             resp = requests.post(url, json=payload, headers=headers)

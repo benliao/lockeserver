@@ -75,8 +75,9 @@ See [npm docs](https://docs.npmjs.com/cli/v10/commands/npm-publish) for more det
 - `options.owner` - unique owner id (default: `default_owner`)
 - `options.secret` - shared secret (default: `changeme`)
 
-### `acquire(resource, blocking = true)`
+### `acquire(resource, blocking = true, expire)`
 - Acquires a lock on `resource`. If `blocking` is false, returns immediately if lock is held.
+- `expire` (optional): lock expiration in seconds. After this time, the lock is auto-released by the server.
 - Returns a Promise resolving to `true` (lock acquired) or `false` (non-blocking, lock not acquired).
 
 ### `release(resource)`

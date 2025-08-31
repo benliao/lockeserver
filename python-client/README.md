@@ -75,8 +75,9 @@ if client.acquire('s3-upload-lock'):
 - `owner`: unique owner id (default: `default_owner`)
 - `secret`: shared secret (default: `changeme`)
 
-### `acquire(resource, blocking=True)`
+### `acquire(resource, blocking=True, expire=None)`
 - Acquires a lock on `resource`. If `blocking` is False, returns immediately if lock is held.
+- `expire` (optional): lock expiration in seconds. After this time, the lock is auto-released by the server.
 - Returns `True` (lock acquired) or `False` (non-blocking, lock not acquired).
 
 ### `release(resource)`

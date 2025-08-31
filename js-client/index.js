@@ -14,9 +14,17 @@ class LockserverClient {
     this.baseUrl = `http://${this.addr}`;
   }
 
-  async acquire(resource, blocking = true) {
+  /**
+   * Acquire a lock on a resource.
+   * @param {string} resource
+   * @param {boolean} [blocking=true]
+   * @param {number} [expire] - Expiration in seconds (optional)
+   * @returns {Promise<boolean>} true if lock acquired, false if non-blocking and not acquired
+   */
+  async acquire(resource, blocking = true, expire) {
     const url = `${this.baseUrl}/acquire`;
     const payload = { resource, owner: this.owner };
+    if (expire !== undefined) payload.expire = expire;
     while (true) {
       try {
         await axios.post(url, payload, {

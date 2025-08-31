@@ -6,6 +6,6 @@ export interface LockserverClientOptions {
 
 export class LockserverClient {
   constructor(options: LockserverClientOptions);
-  acquire(resource: string, blocking?: boolean): Promise<boolean>;
+  acquire(resource: string, blocking?: boolean, expire?: number): Promise<boolean>;
   release(resource: string): Promise<void>;
 }

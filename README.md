@@ -11,19 +11,11 @@ Lockserver is a distributed lock server for coordinating access to shared resour
 
 ## Features
 - Simple API for acquiring and releasing locks
-- HTTP API only (no TCP service)
 - Official client libraries for Rust, Node.js, and Python
 - Ergonomic Rust macros (`lock_scope!`)
 - Blocking and non-blocking lock acquisition
-- Ready for publishing to crates.io, npm, and PyPI
-
-## Usage
-
-
-### Start the server
-
-
-
+- **Lock expiration:** Optionally set an expiration (in seconds) when acquiring a lock; expired locks are auto-released
+  
 ## Security: Shared Secret Authorization
 
 All client requests must include a shared secret for authorization. The server and client must agree on the same secret, set via the `LOCKSERVER_SECRET` environment variable or `.env` file. The client sends this secret in the `X-LOCKSERVER-SECRET` HTTP header.
@@ -74,15 +66,16 @@ cargo run --release
 ### HTTP API (default port 8080)
 
 - Acquire a lock:
-  `POST /acquire` with JSON `{ "resource": "myres", "owner": "worker1" }`
+  `POST /acquire` with JSON `{ "resource": "myres", "owner": "worker1" [, "expire": 10] }`
+  - Optional `expire` (seconds): lock will be auto-released after this many seconds
 - Release a lock:
   `POST /release` with JSON `{ "resource": "myres", "owner": "worker1" }`
 
-Example using `curl` (with secret):
+Example using `curl` (with secret and expiration):
 
 ```sh
 curl -X POST -H "Content-Type: application/json" -H "X-LOCKSERVER-SECRET: your-strong-secret" \
-  -d '{"resource":"myres","owner":"worker1"}' http://localhost:8080/acquire
+  -d '{"resource":"myres","owner":"worker1","expire":10}' http://localhost:8080/acquire
 curl -X POST -H "Content-Type: application/json" -H "X-LOCKSERVER-SECRET: your-strong-secret" \
   -d '{"resource":"myres","owner":"worker1"}' http://localhost:8080/release
 ```
@@ -92,8 +85,11 @@ curl -X POST -H "Content-Type: application/json" -H "X-LOCKSERVER-SECRET: your-s
 ## Client SDKs
 
 - **Rust**: See below and the integration tests in `tests/lock_scope_macro.rs`.
+  - `acquire_with_mode_and_expire(resource, mode, expire)` allows setting expiration in seconds
 - **Node.js**: [js-client/](js-client/) ([npm](https://www.npmjs.com/package/lockserver-client))
+  - `acquire(resource, blocking = true, expire)` supports expiration (in seconds)
 - **Python**: [python-client/](python-client/) ([PyPI](https://pypi.org/project/lockserver-client/))
+  - `acquire(resource, blocking=True, expire=None)` supports expiration (in seconds)
 
 ### Rust Example
 
@@ -122,6 +118,12 @@ let client = LockserverClient::new_with_env(
 
 // Non-blocking mode:
 if let Ok(()) = client.acquire_with_mode("resource", lockserver::LockMode::NonBlocking) {
+  let _guard = lockserver::LockGuard::new(&client, "resource");
+  // critical section
+}
+
+// With expiration:
+if let Ok(()) = client.acquire_with_mode_and_expire("resource", lockserver::LockMode::NonBlocking, 10) {
   let _guard = lockserver::LockGuard::new(&client, "resource");
   // critical section
 }
