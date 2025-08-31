@@ -6,8 +6,8 @@
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// Errors returned by the lock manager.
 #[derive(Debug, thiserror::Error)]
@@ -36,7 +36,6 @@ pub struct LockManager {
 
 impl LockManager {
     /// Create a new lock manager.
-
     pub fn new() -> Self {
         let manager = Self {
             locks: Arc::new(Mutex::new(HashMap::new())),
@@ -48,27 +47,50 @@ impl LockManager {
 
     /// Try to acquire a lock for a resource and owner, with optional expiration in seconds.
     /// expire_secs: None = no expiration, Some(n) = expire after n seconds
-    pub fn acquire(&self, resource: &str, owner: &str, expire_secs: Option<u64>) -> Result<(), LockError> {
-        let mut locks = self.locks.lock().map_err(|e| LockError::Internal(e.to_string()))?;
+    pub fn acquire(
+        &self,
+        resource: &str,
+        owner: &str,
+        expire_secs: Option<u64>,
+    ) -> Result<(), LockError> {
+        let mut locks = self
+            .locks
+            .lock()
+            .map_err(|e| LockError::Internal(e.to_string()))?;
         if locks.contains_key(resource) {
             return Err(LockError::AlreadyLocked);
         }
         let expire_at = expire_secs.map(|secs| {
-            let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
             now + secs
         });
-        locks.insert(resource.to_string(), LockInfo { owner: owner.to_string(), expire_at });
+        locks.insert(
+            resource.to_string(),
+            LockInfo {
+                owner: owner.to_string(),
+                expire_at,
+            },
+        );
         drop(locks);
         if let Some(expire_at) = expire_at {
             let mut slots = self.timeslots.lock().unwrap();
-            slots.entry(expire_at).or_default().insert(resource.to_string());
+            slots
+                .entry(expire_at)
+                .or_default()
+                .insert(resource.to_string());
         }
         Ok(())
     }
 
     /// Release a lock for a resource and owner.
     pub fn release(&self, resource: &str, owner: &str) -> Result<(), LockError> {
-        let mut locks = self.locks.lock().map_err(|e| LockError::Internal(e.to_string()))?;
+        let mut locks = self
+            .locks
+            .lock()
+            .map_err(|e| LockError::Internal(e.to_string()))?;
         match locks.get(resource) {
             Some(info) if info.owner == owner => {
                 // Remove from timeslot if present
@@ -99,23 +121,28 @@ impl LockManager {
     fn spawn_expiry_worker(&self) {
         let locks = self.locks.clone();
         let timeslots = self.timeslots.clone();
-        thread::spawn(move || loop {
-            let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-            let expired: Vec<u64> = {
-                let slots = timeslots.lock().unwrap();
-                slots.keys().filter(|&&ts| ts <= now).cloned().collect()
-            };
-            for ts in expired {
-                let resources = {
-                    let mut slots = timeslots.lock().unwrap();
-                    slots.remove(&ts).unwrap_or_default()
+        thread::spawn(move || {
+            loop {
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
+                let expired: Vec<u64> = {
+                    let slots = timeslots.lock().unwrap();
+                    slots.keys().filter(|&&ts| ts <= now).cloned().collect()
                 };
-                let mut l = locks.lock().unwrap();
-                for resource in resources {
-                    l.remove(&resource);
+                for ts in expired {
+                    let resources = {
+                        let mut slots = timeslots.lock().unwrap();
+                        slots.remove(&ts).unwrap_or_default()
+                    };
+                    let mut l = locks.lock().unwrap();
+                    for resource in resources {
+                        l.remove(&resource);
+                    }
                 }
+                thread::sleep(Duration::from_secs(1));
             }
-            thread::sleep(Duration::from_secs(1));
         });
     }
 }
